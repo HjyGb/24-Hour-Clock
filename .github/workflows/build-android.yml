@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-标签:
+    tags:
       - '*'
   workflow_dispatch:
 
