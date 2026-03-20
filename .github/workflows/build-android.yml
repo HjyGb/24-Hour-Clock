@@ -32,12 +32,19 @@ jobs:
             libtool \
             libffi-dev \
             libssl-dev \
-            zlib1g-dev
+            zlib1g-dev \
+            cmake \
+            libncurses5-dev
             
       - name: Install buildozer
         run: |
-          pip install --upgrade pip
-          pip install buildozer
+          pip install --upgrade pip setuptools
+          pip install buildozer==1.5.0
+          pip install cython==0.29.33
+          pip install kivy==2.3.0
+          pip install jinja2
+          pip install packaging
+          pip install toml
           
       - name: Build APK
         run: |
@@ -46,13 +53,19 @@ jobs:
             buildozer init
           fi
           
-          # 修改配置文件
-          sed -i 's/title = .*/title = 24 小时制时钟/' buildozer.spec
-          sed -i 's/package.name = .*/package.name = clock24/' buildozer.spec
-          sed -i 's/package.domain = .*/package.domain = org.example/' buildozer.spec
-          sed -i 's/orientation = .*/orientation = portrait/' buildozer.spec
+          # 修改配置文件（使用更精确的匹配）
+          sed -i 's/^title = .*/title = 24 小时制时钟/' buildozer.spec
+          sed -i 's/^package.name = .*/package.name = clock24/' buildozer.spec
+          sed -i 's/^package.domain = .*/package.domain = org.example/' buildozer.spec
+          sed -i 's/^orientation = .*/orientation = portrait/' buildozer.spec
+          sed -i 's/^android.arch = .*/android.archs = arm64-v8a,armeabi-v7a/' buildozer.spec
           
-          # 构建 debug 版本
+          # 设置环境变量
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_SDK=$ANDROID_HOME
+          export ANDROID_NDK=$HOME/.buildozer/android/platform/android-ndk-r25b
+          
+          # 构建 debug 版本（添加详细日志）
           buildozer android debug
           
       - name: Upload APK
