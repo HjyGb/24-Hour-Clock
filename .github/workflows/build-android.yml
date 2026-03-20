@@ -62,7 +62,7 @@ jobs:
           
       - name: Build APK
         run: |
-          # 清理之前的构建缓存，避免使用旧的配置
+          # 清理之前的构建缓存，让 buildozer 重新初始化 SDK
           rm -rf .buildozer
           
           # 如果 buildozer.spec 不存在才初始化
@@ -70,7 +70,7 @@ jobs:
             buildozer init
           fi
           
-          # 修改配置文件（使用更精确的匹配）
+          # 修改配置文件
           sed -i 's/^title = .*/title = 24 小时制时钟/' buildozer.spec
           sed -i 's/^package.name = .*/package.name = clock24/' buildozer.spec
           sed -i 's/^package.domain = .*/package.domain = org.example/' buildozer.spec
@@ -87,16 +87,22 @@ jobs:
           
           # 第一次运行会下载所有需要的组件，包括 build-tools
           # 使用 env 确保环境变量传递给所有子进程
+          # 注意：不要在 PATH 中包含 build-tools，因为此时它还不存在
+          # buildozer 会自动下载并安装到正确的路径
           env \
             ANDROID_HOME=$ANDROID_HOME \
             ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
-            PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools \
+            PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools \
             buildozer android debug 2>&1 | tee build.log
           
           # 构建完成后检查 build-tools 位置
           echo "Build completed. Checking build-tools location:"
           find $ANDROID_HOME -name "aidl" -type f 2>/dev/null || echo "aidl not found in ANDROID_HOME"
           ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "build-tools directory not found"
+          
+          # 获取实际安装的 build-tools 版本
+          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools/ 2>/dev/null | head -n 1)
+          echo "Installed build-tools version: $BUILD_TOOLS_VERSION"
           
           # 显示生成的 APK 文件
           echo "Looking for generated APK files:"
