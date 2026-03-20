@@ -12,10 +12,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           
@@ -98,8 +98,23 @@ jobs:
           find $ANDROID_HOME -name "aidl" -type f 2>/dev/null || echo "aidl not found in ANDROID_HOME"
           ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "build-tools directory not found"
           
+          # 显示生成的 APK 文件
+          echo "Looking for generated APK files:"
+          find . -name "*.apk" -type f
+          ls -la bin/ 2>/dev/null || echo "bin directory not found"
+          
+          # 验证 APK 文件是否存在
+          APK_FILE=$(find . -name "*-debug.apk" -type f | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "No APK file found after build"
+            exit 1
+          fi
+          echo "APK file found: $APK_FILE"
+          
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: clock24-apk
-          path: bin/*.apk
+          path: ${{ github.workspace }}/bin/*-debug.apk
+          if-no-files-found: error
+          retention-days: 30
