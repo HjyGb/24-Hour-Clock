@@ -15,12 +15,15 @@ orientation = portrait
 fullscreen = 1
 
 android.permissions = INTERNET,VIBRATE
-android.api = 31
+android.api = 30
 android.minapi = 21
-android.sdk = 24
+android.sdk = 30
+android.buildtools_version = 30.0.3
 android.ndk = 25b
 android.archs = arm64-v8a,armeabi-v7a
 android.accept_any_license = True
+# 禁用自动 SDK 更新，使用我们指定的版本
+android.skip_update = False
 
 [buildozer]
 log_level = 2

@@ -47,6 +47,8 @@ jobs:
           pip install toml
           pip install requests
           pip install urllib3
+          # 安装特定版本的 python-for-android，避免自动选择导致问题
+          pip install python-for-android==21.0.0
           
       - name: Pre-accept Android SDK licenses
         run: |
@@ -54,6 +56,9 @@ jobs:
           mkdir -p $HOME/.android/licenses 2>/dev/null || true
           echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
           echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > $HOME/.android/licenses/android-sdk-preview-license 2>/dev/null || true
+          echo "d975f751698a77b662f10916024061290c831869" >> $HOME/.android/licenses/android-sdk-preview-license 2>/dev/null || true
           
       - name: Build APK
         run: |
@@ -76,6 +81,22 @@ jobs:
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/30.0.3
           
+          # 等待 SDK 完全下载并验证 build-tools 已安装
+          echo "Waiting for Android SDK to be ready..."
+          timeout=300
+          while [ ! -d "$ANDROID_HOME/build-tools/30.0.3" ] && [ $timeout -gt 0 ]; do
+            sleep 5
+            timeout=$((timeout-5))
+            echo "Waiting for build-tools... ($timeout seconds remaining)"
+          done
+          
+          if [ ! -d "$ANDROID_HOME/build-tools/30.0.3" ]; then
+            echo "Error: build-tools not found after waiting"
+            ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "build-tools directory does not exist"
+            exit 1
+          fi
+          
+          echo "build-tools found, starting build..."
           # 构建 debug 版本 - Buildozer 会自动下载所有需要的东西
           buildozer android debug
           
