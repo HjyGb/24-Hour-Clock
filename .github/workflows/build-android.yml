@@ -77,27 +77,13 @@ jobs:
           sed -i 's/^orientation = .*/orientation = portrait/' buildozer.spec
           sed -i 's/^android.arch = .*/android.archs = arm64-v8a,armeabi-v7a/' buildozer.spec
           
+          # 直接运行 buildozer，它会自动下载 SDK 和 build-tools
           # 设置环境变量，确保 aidl 可以被找到
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/30.0.3
+          export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
           
-          # 等待 SDK 完全下载并验证 build-tools 已安装
-          echo "Waiting for Android SDK to be ready..."
-          timeout=300
-          while [ ! -d "$ANDROID_HOME/build-tools/30.0.3" ] && [ $timeout -gt 0 ]; do
-            sleep 5
-            timeout=$((timeout-5))
-            echo "Waiting for build-tools... ($timeout seconds remaining)"
-          done
-          
-          if [ ! -d "$ANDROID_HOME/build-tools/30.0.3" ]; then
-            echo "Error: build-tools not found after waiting"
-            ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "build-tools directory does not exist"
-            exit 1
-          fi
-          
-          echo "build-tools found, starting build..."
           # 构建 debug 版本 - Buildozer 会自动下载所有需要的东西
+          # 第一次运行会下载 SDK、NDK、build-tools 等，可能需要 10-20 分钟
           buildozer android debug
           
       - name: Upload APK
