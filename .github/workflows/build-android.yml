@@ -47,8 +47,8 @@ jobs:
           pip install toml
           pip install requests
           pip install urllib3
-          # 安装特定版本的 python-for-android，避免自动选择导致问题
-          pip install python-for-android==21.0.0
+          # 安装稳定版本的 python-for-android
+          pip install python-for-android==2021.9.5
           
       - name: Pre-accept Android SDK licenses
         run: |
