@@ -41,8 +41,10 @@ jobs:
           
       - name: Build APK
         run: |
-          # 初始化 buildozer
-          buildozer init
+          # 如果 buildozer.spec 不存在才初始化
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
           
           # 修改配置文件
           sed -i 's/title = .*/title = 24 小时制时钟/' buildozer.spec
