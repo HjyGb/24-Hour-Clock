@@ -77,14 +77,26 @@ jobs:
           sed -i 's/^orientation = .*/orientation = portrait/' buildozer.spec
           sed -i 's/^android.arch = .*/android.archs = arm64-v8a,armeabi-v7a/' buildozer.spec
           
-          # 直接运行 buildozer，它会自动下载 SDK 和 build-tools
-          # 设置环境变量，确保 aidl 可以被找到
+          # 设置 Android SDK 环境变量
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
           
-          # 构建 debug 版本 - Buildozer 会自动下载所有需要的东西
-          # 第一次运行会下载 SDK、NDK、build-tools 等，可能需要 10-20 分钟
-          buildozer android debug
+          echo "Starting buildozer build process..."
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "PATH before buildozer: $PATH"
+          
+          # 第一次运行会下载所有需要的组件，包括 build-tools
+          # 使用 env 确保环境变量传递给所有子进程
+          env \
+            ANDROID_HOME=$ANDROID_HOME \
+            ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
+            PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools \
+            buildozer android debug 2>&1 | tee build.log
+          
+          # 构建完成后检查 build-tools 位置
+          echo "Build completed. Checking build-tools location:"
+          find $ANDROID_HOME -name "aidl" -type f 2>/dev/null || echo "aidl not found in ANDROID_HOME"
+          ls -la $ANDROID_HOME/build-tools/ 2>/dev/null || echo "build-tools directory not found"
           
       - name: Upload APK
         uses: actions/upload-artifact@v4
