@@ -1,0 +1,60 @@
+name: Build Android APK
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            python3-venv \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            build-essential \
+            libtool \
+            libffi-dev \
+            libssl-dev \
+            zlib1g-dev
+            
+      - name: Install buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer
+          
+      - name: Build APK
+        run: |
+          # 初始化 buildozer
+          buildozer init
+          
+          # 修改配置文件
+          sed -i 's/title = .*/title = 24 小时制时钟/' buildozer.spec
+          sed -i 's/package.name = .*/package.name = clock24/' buildozer.spec
+          sed -i 's/package.domain = .*/package.domain = org.example/' buildozer.spec
+          sed -i 's/orientation = .*/orientation = portrait/' buildozer.spec
+          
+          # 构建 debug 版本
+          buildozer android debug
+          
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: clock24-apk
+          path: bin/*.apk
