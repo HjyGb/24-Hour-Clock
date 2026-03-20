@@ -7,7 +7,10 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
-requirements = python3,kivy==2.3.0
+requirements = python3,kivy==2.3.0,cython
+
+# 添加可能的额外依赖
+# p4a.local_recipes = # 如果需要本地配方可以取消注释
 orientation = portrait
 fullscreen = 1
 
