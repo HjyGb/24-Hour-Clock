@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-标签:  # 修正：中文「标签」→ 英文tags
+    tags:
       - '*'
-  workflow_dispatch:  # 确保手动触发按钮显示
+  workflow_dispatch:
 
 jobs:
   build-apk:
