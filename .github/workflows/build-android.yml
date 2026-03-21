@@ -58,10 +58,15 @@ jobs:
           mv $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/cmdline-tools/* $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/
           rm cmdline-tools.zip
                 
-          # 接受所有 SDK 许可
+          # 创建符号链接以兼容 buildozer (重要!)
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk/tools/bin
+          ln -s $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+          ln -s $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/avdmanager $HOME/.buildozer/android/platform/android-sdk/tools/bin/avdmanager
+                
+          # 接受所有SDK许可
           yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
                 
-          # 安装指定版本 Build-Tools、Android 平台和 platform-tools
+          # 安装指定版本Build-Tools、Android 平台和 platform-tools
           $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
                 
           # 配置环境变量
