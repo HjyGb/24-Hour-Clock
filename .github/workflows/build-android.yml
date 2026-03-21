@@ -1,85 +1,117 @@
 name: Build Android APK
+
 on:
   push:
-    branches: [ main ]  # 触发分支可自定义
-  pull_request:
-    branches: [ main ]
+标签:  # 修正：中文「标签」→ 英文tags
+      - '*'
+  workflow_dispatch:  # 确保手动触发按钮显示
 
 jobs:
-  build:
+  build-apk:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: 检出代码
+      - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: 安装系统依赖
-        run: |
-          sudo apt update
-          sudo apt install -y \
-            python3-pip \
-            python3-setuptools \
-            python3-wheel \
-            openjdk-17-jdk \
-            unzip \
-            libncurses5 \
-            libstdc++6 \
-            zlib1g \
-            wget
-
-      - name: 配置 Java 环境
-        uses: actions/setup-java@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: 安装 Buildozer
+          python-version: '3.10'
+          
+      - name: Install system dependencies
         run: |
-          pip3 install --upgrade buildozer cython==0.29.36
-
-      - name: 配置 Android SDK 环境变量
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            python3-venv \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            build-essential \
+            libtool \
+            libffi-dev \
+            libssl-dev \
+            zlib1g-dev \
+            cmake \
+            libncurses5-dev \
+            unzip \
+            wget  # 新增：用于手动下载SDK
+            
+      - name: Install buildozer & dependencies
         run: |
-          echo "ANDROIDSDK=/home/runner/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=/home/runner/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROIDAPI=33" >> $GITHUB_ENV  # 对应 build-tools 版本
-          echo "BUILD_TOOLS=33.0.2" >> $GITHUB_ENV  # 必须指定具体版本
-
-      - name: 安装 Android SDK 和 Build-Tools
+          pip install --upgrade pip setuptools wheel
+          pip install buildozer==1.5.0
+          pip install cython==0.29.36  # 修正：0.29.33→0.29.36（兼容Buildozer）
+          pip install kivy==2.3.0
+          pip install jinja2 packaging toml requests urllib3
+          pip install python-for-android==2023.07.03  # 升级：2021.9.5→2023.07.03（修复SDK兼容）
+          
+      - name: Manually install Android SDK/Build-Tools（核心：解决Build-Tools缺失）
         run: |
-          # 创建 SDK 目录
-          mkdir -p $ANDROIDSDK
-          cd $ANDROIDSDK
-
-          # 下载 SDK Manager (cmdline-tools)
-          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools/bin cmdline-tools/latest/
-          mv cmdline-tools/lib cmdline-tools/latest/
-          rm -rf cmdline-tools.zip
-
-          # 接受 SDK 许可（关键）
-          yes | $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-
-          # 安装 Build-Tools 和 Platform Tools
-          $ANDROIDSDK/cmdline-tools/latest/bin/sdkmanager "build-tools;$BUILD_TOOLS" "platforms;android-$ANDROIDAPI" "ndk;25.2.9519653" "platform-tools"
-
-      - name: 配置 Buildozer.spec（关键修复）
+          # 创建SDK目录
+          mkdir -p $HOME/android-sdk/cmdline-tools/latest
+          # 下载SDK Manager（避免Buildozer自动下载失败）
+          wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip -q
+          unzip -q cmdline-tools.zip -d $HOME/android-sdk/cmdline-tools
+          mv $HOME/android-sdk/cmdline-tools/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/
+          rm cmdline-tools.zip
+          # 接受所有SDK许可
+          yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          # 安装指定版本Build-Tools（33.0.2）和Android 33平台
+          $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
+          # 配置环境变量
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "PATH=$PATH:$HOME/android-sdk/build-tools/33.0.2:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+          
+      - name: Pre-accept Android SDK licenses
         run: |
-          # 编辑 buildozer.spec，注入 Android SDK 路径
-          sed -i "s|# android.sdk_path = |android.sdk_path = $ANDROIDSDK|g" buildozer.spec
-          # 确保 AIDL 路径被识别
-          echo "export PATH=\$PATH:$ANDROIDSDK/build-tools/$BUILD_TOOLS" >> ~/.bashrc
-          source ~/.bashrc
-
-      - name: 构建 APK
+          mkdir -p $HOME/.android/licenses 2>/dev/null || true
+          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $HOME/.android/licenses/android-sdk-license 2>/dev/null || true
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > $HOME/.android/licenses/android-sdk-preview-license 2>/dev/null || true
+          echo "d975f751698a77b662f10916024061290c831869" >> $HOME/.android/licenses/android-sdk-preview-license 2>/dev/null || true
+          
+      - name: Build APK
         run: |
-          # 清理旧构建缓存（避免冲突）
+          # 清理旧缓存
           rm -rf .buildozer
+          
+          # 初始化spec（如果不存在）
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
+          
+          # 修改spec配置（指定手动SDK路径+匹配版本）
+          sed -i 's/^title = .*/title = 24 小时制时钟/' buildozer.spec
+          sed -i 's/^package.name = .*/package.name = clock24/' buildozer.spec
+          sed -i 's/^package.domain = .*/package.domain = org.example/' buildozer.spec
+          sed -i 's/^orientation = .*/orientation = portrait/' buildozer.spec
+          sed -i 's/^android.arch = .*/android.archs = arm64-v8a,armeabi-v7a/' buildozer.spec
+          sed -i 's|# android.sdk_path = |android.sdk_path = $HOME/android-sdk|g' buildozer.spec  # 指向手动安装的SDK
+          sed -i 's/^android.api = .*/android.api = 33/' buildozer.spec  # 匹配安装的API版本
+          sed -i 's/^android.build_tools = .*/android.build_tools = 33.0.2/' buildozer.spec  # 匹配Build-Tools版本
+          sed -i 's/^android.autoconfig = .*/android.autoconfig = 0/' buildozer.spec  # 禁用自动下载SDK
+          
           # 执行构建
-          buildozer android debug
-
-      - name: 上传 APK 产物
+          echo "Starting buildozer build..."
+          buildozer android debug 2>&1 | tee build.log
+          
+          # 强制检查APK是否生成（无APK则直接报错）
+          APK_FILE=$(find . -name "*-debug.apk" -type f | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK generated! Build log:"
+            cat build.log
+            exit 1
+          fi
+          echo "APK generated successfully: $APK_FILE"
+          
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-apk
-          path: bin/*.apk
+          name: clock24-apk
+          path: ${{ github.workspace }}/bin/*-debug.apk  # 精确匹配APK路径
+          if-no-files-found: error  # 修正：warn→error，无APK时直接报错
+          retention-days: 30
