@@ -79,27 +79,17 @@ jobs:
           # 清理旧缓存
           rm -rf .buildozer
           
-          # 初始化spec（如果不存在）
+          # 确保 spec 文件存在
           if [ ! -f buildozer.spec ]; then
-            buildozer init
+            echo "Error: buildozer.spec not found!"
+            exit 1
           fi
-          
-          # 修改spec配置（指定手动SDK路径+匹配版本）
-          sed -i 's/^title = .*/title = 24 小时制时钟/' buildozer.spec
-          sed -i 's/^package.name = .*/package.name = clock24/' buildozer.spec
-          sed -i 's/^package.domain = .*/package.domain = org.example/' buildozer.spec
-          sed -i 's/^orientation = .*/orientation = portrait/' buildozer.spec
-          sed -i 's/^android.arch = .*/android.archs = arm64-v8a,armeabi-v7a/' buildozer.spec
-          sed -i 's|# android.sdk_path = |android.sdk_path = $HOME/android-sdk|g' buildozer.spec  # 指向手动安装的SDK
-          sed -i 's/^android.api = .*/android.api = 33/' buildozer.spec  # 匹配安装的API版本
-          sed -i 's/^android.build_tools = .*/android.build_tools = 33.0.2/' buildozer.spec  # 匹配Build-Tools版本
-          sed -i 's/^android.autoconfig = .*/android.autoconfig = 0/' buildozer.spec  # 禁用自动下载SDK
           
           # 执行构建
           echo "Starting buildozer build..."
           buildozer android debug 2>&1 | tee build.log
           
-          # 强制检查APK是否生成（无APK则直接报错）
+          # 强制检查 APK 是否生成（无 APK 则直接报错）
           APK_FILE=$(find . -name "*-debug.apk" -type f | head -n 1)
           if [ -z "$APK_FILE" ]; then
             echo "Error: No APK generated! Build log:"
