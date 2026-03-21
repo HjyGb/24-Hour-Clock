@@ -80,6 +80,11 @@ jobs:
           
       - name: Build APK
         run: |
+          # 设置环境变量
+          export ANDROID_HOME=$HOME/android-sdk
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          export PATH=$PATH:$HOME/android-sdk/build-tools/33.0.2:$HOME/android-sdk/platform-tools
+          
           # 清理旧缓存
           rm -rf .buildozer
           
@@ -89,9 +94,9 @@ jobs:
             exit 1
           fi
           
-          # 执行构建（使用 env 传递环境变量，确保 aidl 能找到）
+          # 执行构建（使用 env 传递环境变量）
           echo "Starting buildozer build..."
-          env $(cat /tmp/android_env | xargs) buildozer android debug 2>&1 | tee build.log
+          env ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT PATH=$PATH buildozer android debug 2>&1 | tee build.log
           
           # 强制检查 APK 是否生成（无 APK 则直接报错）
           APK_FILE=$(find . -name "*-debug.apk" -type f | head -n 1)
