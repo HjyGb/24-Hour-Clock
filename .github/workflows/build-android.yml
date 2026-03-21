@@ -47,9 +47,9 @@ jobs:
           pip install jinja2 packaging toml requests urllib3
           pip install python-for-android==2023.9.16  # 使用可用版本
           
-      - name: Manually install Android SDK/Build-Tools（核心：解决Build-Tools缺失）
+      - name: Manually install Android SDK/Build-Tools（核心：解决 Build-Tools 缺失）
         run: |
-          # 创建SDK目录
+          # 创建 SDK 目录
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           # 下载SDK Manager（避免Buildozer自动下载失败）
           wget https://dl.google.com/android/repository/commandlinetools-linux-10406996_latest.zip -O cmdline-tools.zip -q
@@ -58,12 +58,16 @@ jobs:
           rm cmdline-tools.zip
           # 接受所有SDK许可
           yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
-          # 安装指定版本Build-Tools（33.0.2）和Android 33平台
+          # 安装指定版本Build-Tools（33.0.2）和 Android 33 平台
           $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools"
-          # 配置环境变量
+          # 配置环境变量（供后续步骤使用）
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH:$HOME/android-sdk/build-tools/33.0.2:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+          # 保存环境变量到文件（用于 env 命令）
+          echo "ANDROID_HOME=$HOME/android-sdk" > /tmp/android_env
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> /tmp/android_env
+          echo "PATH=$PATH:$HOME/android-sdk/build-tools/33.0.2:$HOME/android-sdk/platform-tools" >> /tmp/android_env
           
       - name: Pre-accept Android SDK licenses
         run: |
@@ -85,9 +89,9 @@ jobs:
             exit 1
           fi
           
-          # 执行构建
+          # 执行构建（使用 env 传递环境变量，确保 aidl 能找到）
           echo "Starting buildozer build..."
-          buildozer android debug 2>&1 | tee build.log
+          env $(cat /tmp/android_env | xargs) buildozer android debug 2>&1 | tee build.log
           
           # 强制检查 APK 是否生成（无 APK 则直接报错）
           APK_FILE=$(find . -name "*-debug.apk" -type f | head -n 1)
